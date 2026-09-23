@@ -1,0 +1,59 @@
+name: Bootstrap release v2.0.0
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/bootstrap-release.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    if: github.event.head_commit.message == 'Bootstrap release v2.0.0'
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt "pyinstaller>=6.11,<7"
+
+      - name: Build application
+        shell: pwsh
+        run: |
+          python -m PyInstaller `
+            --noconfirm `
+            --clean `
+            --windowed `
+            --onedir `
+            --name "ReactiveAvatars2" `
+            --collect-all "imageio_ffmpeg" `
+            "main.py"
+
+          New-Item -ItemType Directory -Force "dist/ReactiveAvatars2/input" | Out-Null
+          New-Item -ItemType Directory -Force "dist/ReactiveAvatars2/output" | Out-Null
+          Copy-Item "README.md" "dist/ReactiveAvatars2/README.md"
+          Copy-Item "LICENSE" "dist/ReactiveAvatars2/LICENSE"
+          Copy-Item "input/README.txt" "dist/ReactiveAvatars2/input/README.txt"
+          Compress-Archive -Path "dist/ReactiveAvatars2/*" -DestinationPath "Reactive-Avatars-v2.0.0-Windows.zip"
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v2.0.0" `
+            "Reactive-Avatars-v2.0.0-Windows.zip" `
+            --target "$env:GITHUB_SHA" `
+            --title "Reactive Avatars v2.0.0" `
+            --generate-notes
