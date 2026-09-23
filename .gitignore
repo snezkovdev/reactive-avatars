@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+
+# Build output
+build/
+dist/
+*.spec
+
+# Rendered media and local projects
+output/*
+!output/README.txt
+input/*
+!input/README.txt
+*.mov
+*.mp4
+*.ravproj
+*.partial.mov
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini

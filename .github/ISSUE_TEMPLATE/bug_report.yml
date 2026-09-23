@@ -1,0 +1,41 @@
+name: Сообщить об ошибке
+description: Воспроизводимая проблема в приложении или рендере
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Спасибо за сообщение. Не прикладывайте приватные записи и персональные данные.
+  - type: input
+    id: version
+    attributes:
+      label: Версия приложения
+      placeholder: 2.0.0
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Операционная система и версия Python
+      placeholder: Windows 11, Python 3.12
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги воспроизведения
+      description: Что именно нужно сделать, чтобы увидеть ошибку?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактическое поведение и текст ошибки
+    validations:
+      required: true

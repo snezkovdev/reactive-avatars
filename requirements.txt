@@ -1,0 +1,4 @@
+numpy>=1.26,<3
+Pillow>=10.0,<13
+imageio-ffmpeg>=0.5,<1
+PySide6>=6.7,<7
