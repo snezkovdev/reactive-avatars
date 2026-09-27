@@ -44,6 +44,10 @@ echo Building the portable Windows application...
     --collect-all "imageio_ffmpeg" ^
     --collect-all "faster_whisper" ^
     --collect-all "ctranslate2" ^
+    --collect-all "tokenizers" ^
+    --collect-all "huggingface_hub" ^
+    --collect-all "onnxruntime" ^
+    --collect-all "av" ^
     "main.py"
 if errorlevel 1 goto error
 
