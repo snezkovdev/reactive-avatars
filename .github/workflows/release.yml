@@ -35,6 +35,8 @@ jobs:
             --onedir `
             --name "ReactiveAvatars2" `
             --collect-all "imageio_ffmpeg" `
+            --collect-all "faster_whisper" `
+            --collect-all "ctranslate2" `
             "main.py"
 
           New-Item -ItemType Directory -Force "dist/ReactiveAvatars2/input" | Out-Null

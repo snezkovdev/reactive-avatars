@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from models import CropSettings, Participant, Project
+from models import CaptionSegment, CaptionSettings, CaptionWord, CropSettings, Participant, Project
 
 
 def test_project_round_trip(tmp_path: Path) -> None:
@@ -20,6 +20,12 @@ def test_project_round_trip(tmp_path: Path) -> None:
         height=720,
         fps=60,
         positions=[[0.3, 0.7]],
+        caption_source="video.mp4",
+        caption_output="captions.mov",
+        caption_settings=CaptionSettings(preset="meme", words_per_caption=3),
+        caption_segments=[
+            CaptionSegment(0.0, 1.0, "Тест", [CaptionWord(0.0, 1.0, "Тест")])
+        ],
     )
 
     source.save(path)
@@ -31,6 +37,8 @@ def test_project_round_trip(tmp_path: Path) -> None:
     assert restored.positions == [[0.3, 0.7]]
     assert restored.participants[0].sensitivity == 1.25
     assert restored.participants[0].crop.zoom == 1.4
+    assert restored.caption_settings.preset == "meme"
+    assert restored.caption_segments[0].words[0].text == "Тест"
 
 
 def test_project_normalizes_invalid_values() -> None:

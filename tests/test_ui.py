@@ -20,3 +20,14 @@ def test_main_window_supports_one_to_eight_participants() -> None:
     assert window.people_list.count() == 1
 
     window.close()
+
+
+def test_main_window_has_caption_workspace() -> None:
+    QApplication.instance() or QApplication([])
+    window = MainWindow()
+
+    assert window.tabs.count() == 2
+    assert window.tabs.tabText(1) == "Субтитры"
+    assert window.captions_widget.mode_combo.count() == 4
+
+    window.close()

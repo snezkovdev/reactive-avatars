@@ -7,7 +7,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 APP_NAME = "Reactive Avatars"
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
 RESOURCE_ROOT = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 APP_ROOT = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
 
@@ -48,6 +48,88 @@ class Participant:
 
 
 @dataclass
+class CaptionWord:
+    start: float = 0.0
+    end: float = 0.0
+    text: str = ""
+
+    @classmethod
+    def from_dict(cls, value: dict) -> "CaptionWord":
+        start = max(0.0, float(value.get("start", 0.0)))
+        end = max(start, float(value.get("end", start)))
+        return cls(start=start, end=end, text=str(value.get("text", "")).strip())
+
+
+@dataclass
+class CaptionSegment:
+    start: float = 0.0
+    end: float = 0.0
+    text: str = ""
+    words: list[CaptionWord] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, value: dict) -> "CaptionSegment":
+        start = max(0.0, float(value.get("start", 0.0)))
+        end = max(start, float(value.get("end", start)))
+        return cls(
+            start=start,
+            end=end,
+            text=str(value.get("text", "")).strip(),
+            words=[CaptionWord.from_dict(item) for item in value.get("words", [])],
+        )
+
+
+@dataclass
+class CaptionSettings:
+    preset: str = "reels"
+    model_size: str = "small"
+    language: str = "ru"
+    font_family: str = "Segoe UI"
+    font_size: int = 100
+    stroke_width: int = 6
+    y_position: float = 0.76
+    words_per_caption: int = 4
+    uppercase: bool = False
+    width: int = 1080
+    height: int = 1920
+    fps: int = 30
+    export_mode: str = "overlay"
+
+    def normalized(self) -> "CaptionSettings":
+        self.preset = self.preset if self.preset in {"reels", "meme", "classic", "karaoke"} else "reels"
+        self.model_size = self.model_size if self.model_size in {"tiny", "base", "small", "medium"} else "small"
+        self.language = self.language if self.language in {"ru", "auto"} else "ru"
+        self.font_size = max(24, min(220, int(self.font_size)))
+        self.stroke_width = max(0, min(20, int(self.stroke_width)))
+        self.y_position = max(0.10, min(0.92, float(self.y_position)))
+        self.words_per_caption = max(1, min(12, int(self.words_per_caption)))
+        self.width = max(320, min(3840, int(self.width)))
+        self.height = max(240, min(3840, int(self.height)))
+        self.fps = max(12, min(60, int(self.fps)))
+        self.export_mode = self.export_mode if self.export_mode in {"overlay", "burned", "srt", "ass"} else "overlay"
+        return self
+
+    @classmethod
+    def from_dict(cls, value: dict | None) -> "CaptionSettings":
+        value = value or {}
+        return cls(
+            preset=str(value.get("preset", "reels")),
+            model_size=str(value.get("model_size", "small")),
+            language=str(value.get("language", "ru")),
+            font_family=str(value.get("font_family", "Segoe UI")),
+            font_size=int(value.get("font_size", 100)),
+            stroke_width=int(value.get("stroke_width", 6)),
+            y_position=float(value.get("y_position", 0.76)),
+            words_per_caption=int(value.get("words_per_caption", 4)),
+            uppercase=bool(value.get("uppercase", False)),
+            width=int(value.get("width", 1080)),
+            height=int(value.get("height", 1920)),
+            fps=int(value.get("fps", 30)),
+            export_mode=str(value.get("export_mode", "overlay")),
+        ).normalized()
+
+
+@dataclass
 class Project:
     master_audio: str = ""
     output_path: str = ""
@@ -61,6 +143,10 @@ class Project:
     auto_avatar_style: bool = True
     positions: list[list[float]] = field(default_factory=list)
     project_path: str = ""
+    caption_source: str = ""
+    caption_output: str = ""
+    caption_settings: CaptionSettings = field(default_factory=CaptionSettings)
+    caption_segments: list[CaptionSegment] = field(default_factory=list)
 
     def normalized(self) -> "Project":
         self.width = max(320, min(7680, int(self.width)))
@@ -68,6 +154,8 @@ class Project:
         self.fps = max(12, min(60, int(self.fps)))
         self.avatar_size = max(120, min(1200, int(self.avatar_size)))
         self.participants = self.participants[:8] or [Participant()]
+        self.caption_settings.normalized()
+        self.caption_segments = sorted(self.caption_segments, key=lambda item: (item.start, item.end))
         if len(self.positions) != len(self.participants):
             self.positions = []
         else:
@@ -82,7 +170,7 @@ class Project:
 
     def to_dict(self) -> dict:
         value = asdict(self)
-        value["format_version"] = 1
+        value["format_version"] = 2
         value["app_version"] = APP_VERSION
         value.pop("project_path", None)
         return value
@@ -109,5 +197,9 @@ class Project:
             auto_avatar_style=bool(value.get("auto_avatar_style", True)),
             positions=value.get("positions", []),
             project_path=str(path),
+            caption_source=str(value.get("caption_source", "")),
+            caption_output=str(value.get("caption_output", "")),
+            caption_settings=CaptionSettings.from_dict(value.get("caption_settings")),
+            caption_segments=[CaptionSegment.from_dict(item) for item in value.get("caption_segments", [])],
         )
         return project.normalized()

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reactive-avatars"
-version = "2.0.0"
-description = "Create transparent reactive-avatar videos from separate voice tracks."
+version = "2.1.0"
+description = "Create transparent reactive-avatar videos and animated captions."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
@@ -32,12 +32,16 @@ dev = [
     "pytest>=8,<10",
     "ruff>=0.12,<1",
 ]
+captions = [
+    "faster-whisper>=1.1,<2",
+    "socksio>=1.0,<2",
+]
 
 [project.gui-scripts]
 reactive-avatars = "main:main"
 
 [tool.setuptools]
-py-modules = ["main", "ui", "engine", "models"]
+py-modules = ["main", "ui", "engine", "models", "captions", "captions_ui"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

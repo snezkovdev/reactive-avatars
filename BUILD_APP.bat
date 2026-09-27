@@ -42,6 +42,8 @@ echo Building the portable Windows application...
     --onedir ^
     --name "ReactiveAvatars2" ^
     --collect-all "imageio_ffmpeg" ^
+    --collect-all "faster_whisper" ^
+    --collect-all "ctranslate2" ^
     "main.py"
 if errorlevel 1 goto error
 

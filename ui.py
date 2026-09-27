@@ -31,11 +31,13 @@ from PySide6.QtWidgets import (
     QSlider,
     QSpinBox,
     QSplitter,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
 import engine
+from captions_ui import CaptionsWidget
 from models import APP_NAME, APP_ROOT, APP_VERSION, CropSettings, Participant, Project
 
 IMAGE_FILTER = "Изображения (*.png *.jpg *.jpeg *.webp *.bmp);;Все файлы (*.*)"
@@ -52,6 +54,18 @@ QWidget {
 QMainWindow { background: #0D0F14; }
 QLabel, QCheckBox, QSlider { background: transparent; }
 QFrame#TopBar, QFrame#BottomBar { background: #11141B; border: 0; }
+QTabWidget::pane { border: 0; background: transparent; }
+QTabBar::tab {
+    background: #171A22;
+    color: #9198A7;
+    border: 1px solid #282D37;
+    border-bottom: 0;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    padding: 9px 22px;
+    margin-right: 4px;
+}
+QTabBar::tab:selected { color: #F5F7FB; background: #212630; border-color: #3B424F; }
 QFrame#Panel, QFrame#ParticipantCard {
     background: #171A22;
     border: 1px solid #282D37;
@@ -90,6 +104,24 @@ QLineEdit, QComboBox, QSpinBox {
     min-height: 18px;
 }
 QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border-color: #25F47B; }
+QTableWidget {
+    background: #10131A;
+    alternate-background-color: #131720;
+    border: 1px solid #303641;
+    border-radius: 8px;
+    gridline-color: #282D37;
+    selection-background-color: #18492D;
+    selection-color: #FFFFFF;
+}
+QHeaderView::section {
+    background: #1B2029;
+    color: #B8BFCC;
+    border: 0;
+    border-right: 1px solid #303641;
+    border-bottom: 1px solid #303641;
+    padding: 7px;
+    font-weight: 600;
+}
 QListWidget { background: transparent; border: 0; outline: 0; }
 QListWidget::item { background: transparent; border: 0; padding: 0; margin: 0 0 8px 0; }
 QListWidget::item:selected { background: transparent; }
@@ -524,7 +556,7 @@ class MainWindow(QMainWindow):
         title_box = QVBoxLayout()
         title = QLabel(APP_NAME)
         title.setObjectName("Title")
-        subtitle = QLabel("Прозрачное видео с автоматической подсветкой говорящих")
+        subtitle = QLabel("Реактивные аватарки и автоматические субтитры для монтажа")
         subtitle.setObjectName("Muted")
         title_box.addWidget(title)
         title_box.addWidget(subtitle)
@@ -542,9 +574,17 @@ class MainWindow(QMainWindow):
             top_layout.addWidget(button)
         main.addWidget(top)
 
+        self.tabs = QTabWidget()
+        main.addWidget(self.tabs, 1)
+        avatars_tab = QWidget()
+        avatars_layout = QVBoxLayout(avatars_tab)
+        avatars_layout.setContentsMargins(0, 0, 0, 0)
+        avatars_layout.setSpacing(11)
+        self.tabs.addTab(avatars_tab, "Аватарки")
+
         splitter = QSplitter(Qt.Horizontal)
         splitter.setChildrenCollapsible(False)
-        main.addWidget(splitter, 1)
+        avatars_layout.addWidget(splitter, 1)
 
         left_scroll = QScrollArea()
         left_scroll.setWidgetResizable(True)
@@ -682,7 +722,14 @@ class MainWindow(QMainWindow):
         action_row.addWidget(self.cancel_button)
         action_row.addWidget(self.render_button)
         bottom_layout.addLayout(action_row)
-        main.addWidget(bottom)
+        avatars_layout.addWidget(bottom)
+
+        self.captions_widget = CaptionsWidget()
+        self.captions_widget.changed.connect(self.mark_changed)
+        self.captions_widget.master_requested.connect(
+            lambda: self.captions_widget.use_master(self.master_field.path())
+        )
+        self.tabs.addTab(self.captions_widget, "Субтитры")
 
     def _panel(self, title: str, hint: str) -> QFrame:
         panel = QFrame()
@@ -797,6 +844,7 @@ class MainWindow(QMainWindow):
         self.project.auto_avatar_style = self.auto_style.isChecked()
         if len(self.project.positions) != len(self.project.participants):
             self.project.positions = engine.default_positions(len(self.project.participants))
+        self.captions_widget.collect_into_project(self.project)
         return self.project.normalized()
 
     def _load_project(self, project: Project) -> None:
@@ -815,6 +863,7 @@ class MainWindow(QMainWindow):
         for participant in project.participants:
             self._add_card(participant)
         self.count_spin.setValue(len(project.participants))
+        self.captions_widget.load_project(project)
         self._building = False
         self.refresh_preview()
         self.update_title(False)
@@ -1004,14 +1053,16 @@ class MainWindow(QMainWindow):
             QDesktopServices.openUrl(QUrl.fromLocalFile(self.last_result))
 
     def closeEvent(self, event) -> None:
-        if self.thread:
+        if self.thread or self.captions_widget.thread:
             answer = QMessageBox.question(self, "Идёт рендер", "Остановить рендер и закрыть приложение?")
             if answer != QMessageBox.Yes:
                 event.ignore()
                 return
-            self.cancel_render()
-            self.thread.quit()
-            self.thread.wait(3000)
+            if self.thread:
+                self.cancel_render()
+                self.thread.quit()
+                self.thread.wait(3000)
+            self.captions_widget.stop_and_wait()
         event.accept()
 
 
